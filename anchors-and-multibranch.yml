@@ -1,0 +1,69 @@
+#This gitlab-ci.yml file uses anchors to allow a single deploy script to handle deploys
+#to multiple environments. The options are set with variables in different stages, one
+#stage per environment.
+
+
+stages:
+    - test
+    - hello_world
+    - deploy_staging
+    - deploy_production
+
+.test_script: &test_script |
+    echo This is the test
+    echo Testing $CI_COMMIT_SHA on $CI_COMMIT_REF_NAME with pipeline ID $CI_PIPELINE_ID
+
+.deploy_script: &deploy_script |
+    echo Deploying $CI_COMMIT_SHA on $CI_COMMIT_REF_NAME with pipeline ID $CI_PIPELINE_ID
+    echo onto environment $CI_ENVIRONMENT_NAME $CI_ENVIRONMENT_URL
+    echo rsync blah /home/blah/bah/${webroot_vhost}/
+    echo nlsh gh $host
+
+test:
+    stage: test
+    tags:
+        - local-shell
+    script:
+    - *test_script
+
+do_hello_world:
+    stage: hello_world
+    tags:
+        - local-shell
+    script:
+        - echo hello
+        - ls
+
+deploy_staging:
+    stage: deploy_staging
+    environment:
+        name: Staging
+        url: http://staging.test.com
+    variables:
+        webroot_vhost: staging.test.com
+        host: uat-web01.aws.test.com
+    tags:
+        - local-shell
+    script:
+    - *deploy_script
+    only:
+    - release-staging
+
+
+deploy_production:
+    stage: deploy_production
+    environment:
+        name: Production
+        url: http://test.com
+    variables:
+        webroot_vhost: test.com
+        host: web01.aws.test.com
+    tags:
+        - local-shell
+    script:
+    - *deploy_script
+    only:
+    - release-production
+
+
+
